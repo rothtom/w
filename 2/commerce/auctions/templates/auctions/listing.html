@@ -1,0 +1,42 @@
+{% extends "auctions/layout.html" %}
+
+{% block title %}
+    {{ listing.title }}
+{% endblock %}
+
+{% block body %}
+    <h1>{{ listing.item.title }}</h1>
+    {% if listing.item.picture_link %}
+        <img src="{{ listing.item.picture_link }}" style="width: 60%; margin: auto; display: block; padding: 20px">
+    {% endif %}
+    <h6>{{ listing.item.description }}</h6>
+    <div style="display: inline-block">
+        <p>Price: {{ price }}$</p>
+        {% if request.user.id == listing.owner.id %}
+            <form action="{% url 'delete_listing' %}"  method="post"> {% csrf_token %}
+                <input type="hidden" value="{{ listing.id }}" name="delete_listing_id">
+                <input type="submit" value="delete listing">
+            </form>
+        {% elif request.user.is_authenticated %}
+            {% if watchlisted %}
+                <form action="{% url 'remove_from_watchlist' %}" method="post">{% csrf_token %}
+                    <input type="hidden" value="{{ listing.id }}" name="remove_from_watchlist_listing_id">
+                    <input type="submit" value="remove from watchlist">
+                </form>
+            {% else %}
+                <form action="{% url 'add_to_watchlist' %}" method="post">{% csrf_token %}
+                    <input type="hidden" value="{{ listing.id }}" name="add_to_watchlist_listing_id">
+                    <input type="submit" value="add to watchlist">
+                </form>
+            {% endif %}
+
+        {% endif %}
+    </div>
+    <br>
+    <form action="{% url 'bid' %}" method="post">
+        {% csrf_token %}
+        {{ BidForm }}
+        <input type="hidden" value="{{ listing.id }}" name="bid_listing_id">
+        <input type="submit" value="Bid!">
+    </form>
+{% endblock %}

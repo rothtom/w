@@ -1,20 +1,26 @@
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
+from django.core.exceptions import ObjectDoesNotExist
 
 from .models import User, Listing, Bid, Item
+from . import util
+from . import forms
+from .forms import BidForm
 
 
 def index(request):
     listings = Listing.objects.all()
-
+    price_dict = {}
+    for listing in listings:
+        price = util.get_price(listing)
+        price_dict[listing] = f"{price:.2f}"
     
-
-
     return render(request, "auctions/index.html", {
-        "listings": listings
+        "listings": listings,
+        "price_dict": price_dict
     })
 
 
@@ -79,6 +85,11 @@ def create_listing(request):
     picture_link = request.POST["picture_link"]
     category = request.POST["category"]
     starting_bid = request.POST["starting_bid"]
+    try:
+        starting_bid = float(starting_bid)
+    except:
+        return HttpResponseRedirect(reverse("create_listing"))
+    starting_bid = f"{starting_bid:.2f}"
     user_id = request.user.id
 
     user = User.objects.get(pk=user_id)
@@ -87,3 +98,76 @@ def create_listing(request):
     Listing.objects.create(owner=user, item=item)
 
     return HttpResponseRedirect(reverse("index"))
+
+def listing(request, listing_id):
+    if watchlisted := User.objects.filter(watchlist=listing_id):
+        watchlisted = True
+    else:
+        watchlisted = False
+    try:
+        listing = Listing.objects.get(pk=listing_id)
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse("index"))
+    price = util.get_price(listing)
+    price = f"{price:.2f}"
+
+    return render(request, "auctions/listing.html", {
+        "listing": listing,
+        "watchlisted": watchlisted,
+        "price": price,
+        "BidForm": BidForm()
+    })
+
+def remove_from_watchlist(request):
+    user = User.objects.get(pk=request.user.id)
+    listing_id = request.POST["remove_from_watchlist_listing_id"]
+    listing = Listing.objects.get(pk=listing_id)
+    listing.watchlisted_by.remove(user)
+    return HttpResponseRedirect(reverse("listing", args=(listing_id)))
+
+
+def add_to_watchlist(request):
+    user = request.user
+    listing_id = request.POST["add_to_watchlist_listing_id"]
+
+    listing = Listing.objects.get(pk=listing_id)
+    listing.watchlisted_by.add(user)
+    return HttpResponseRedirect(reverse("listing", args=(listing_id)))
+
+
+def delete_listing(request):
+    listing_id = request.POST["delete_listing_id"]
+    try:
+        listing = Listing.objects.get(pk=listing_id)
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse("index"))
+    if listing.owner.id != request.user.id:
+        return HttpResponseRedirect(reverse("listing", args=(listing_id)))
+    listing.delete()
+    return HttpResponseRedirect(reverse("index"))
+
+
+def bid(request):
+    listing_id = request.POST.get("bid_listing_id", 1)
+    if request.method != "POST":
+        return HttpResponseRedirect(reverse("listing", args=(listing_id)))
+
+    bid = BidForm(request.POST)
+    if not bid.is_valid():
+        return HttpResponseRedirect(reverse("listing", args=(listing_id)))
+    listing = Listing.objects.get(pk=listing_id)
+    highest_bid = util.get_price(listing)
+    user = User.objects.get(pk=request.user.id)
+    bid_value = bid.cleaned_data["value"]
+    if highest_bid == None:
+        starting_bid = int(Listing.objects.get(pk=listing_id).item.starting_bid)
+        if bid_value >= starting_bid:
+            Bid.objects.create(bidder=user, value=bid_value, listing=listing)
+
+    else:
+        if bid_value > highest_bid:
+            Bid.objects.create(bidder=user, value=bid_value, listing=listing)
+
+    return HttpResponseRedirect(reverse("listing", args=(listing_id)))
+                
+

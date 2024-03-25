@@ -5,6 +5,7 @@
     <h2>Active Listings</h2>
     
     {% for listing in listings %}
+    <a href="{% url 'listing' listing.id %}">
         <div style="border: 1px solid black; height: auto; width: 20%; padding: 10px; display: inline-block">
             <h6>{{ listing.item.title }}</h6>
             {% if listing.item.picture_link %}
@@ -13,13 +14,16 @@
                 </div>
                 
             {% endif %}
+            <br>
             <p>{{ listing.item.description }}</p>
-            {% if listing.value != None %}
-                <p>Price: {{ listing.value }}</p>
-            {% else %}
-                <p>Price: {{ listing.item.starting_bid }}$</p>
-            {% endif %}
+            {% for key, value in price_dict.items %}
+                {% if key == listing %}
+                    <p>Price: {{ value }}$</p>
+                {% endif %}
+            {% endfor %}
+            
         </div>
+    </a>
     {% empty %}
         <p>No active Listings!</p>
     {% endfor %}

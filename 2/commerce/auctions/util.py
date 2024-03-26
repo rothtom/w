@@ -4,7 +4,6 @@ from django.urls import reverse
 from .models import Listing, Bid, User
 
 def get_price(listing):
-    print(listing)
     try:
         price = Bid.objects.filter(listing=listing).all().order_by("-value").first().value
     except AttributeError:

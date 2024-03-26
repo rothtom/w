@@ -10,13 +10,28 @@
         <img src="{{ listing.item.picture_link }}" style="width: 60%; margin: auto; display: block; padding: 20px">
     {% endif %}
     <h6>{{ listing.item.description }}</h6>
+
+    {% if listing.active == False and request.user.id == winner.id %}
+            <h6>You have won this auction!</h6>
+    {% endif %}
+
     <div style="display: inline-block">
         <p>Price: {{ price }}$</p>
         {% if request.user.id == listing.owner.id %}
-            <form action="{% url 'delete_listing' %}"  method="post"> {% csrf_token %}
-                <input type="hidden" value="{{ listing.id }}" name="delete_listing_id">
-                <input type="submit" value="delete listing">
-            </form>
+            <div>
+                <form action="{% url 'delete_listing' %}"  method="post"> {% csrf_token %}
+                    <input type="hidden" value="{{ listing.id }}" name="delete_listing_id">
+                    <input type="submit" value="delete listing">
+                </form>
+                {% if listing.active %}
+                    <form action="{% url 'close_action' %}" method="post">
+                        {% csrf_token %}
+                        <input type="submit" value="close auction">
+                        <input type="hidden" value="{{ listing.id }}" name="close_listing_id">
+                    </form>
+                {% endif %}
+            </div>
+
         {% elif request.user.is_authenticated %}
             {% if watchlisted %}
                 <form action="{% url 'remove_from_watchlist' %}" method="post">{% csrf_token %}
@@ -33,10 +48,12 @@
         {% endif %}
     </div>
     <br>
-    <form action="{% url 'bid' %}" method="post">
-        {% csrf_token %}
-        {{ BidForm }}
-        <input type="hidden" value="{{ listing.id }}" name="bid_listing_id">
-        <input type="submit" value="Bid!">
-    </form>
+    {% if listing.active %}
+        <form action="{% url 'bid' %}" method="post">
+            {% csrf_token %}
+            {{ BidForm }}
+            <input type="hidden" value="{{ listing.id }}" name="bid_listing_id">
+            <input type="submit" value="Bid!">
+        </form>
+    {% endif %}
 {% endblock %}

@@ -111,11 +111,14 @@ def listing(request, listing_id):
     price = util.get_price(listing)
     price = f"{price:.2f}"
 
+    winner = Bid.objects.filter(listing=listing_id).all().order_by("-value").first().bidder
+
     return render(request, "auctions/listing.html", {
         "listing": listing,
         "watchlisted": watchlisted,
         "price": price,
-        "BidForm": BidForm()
+        "BidForm": BidForm(),
+        "winner": winner
     })
 
 def remove_from_watchlist(request):
@@ -156,6 +159,8 @@ def bid(request):
     if not bid.is_valid():
         return HttpResponseRedirect(reverse("listing", args=(listing_id)))
     listing = Listing.objects.get(pk=listing_id)
+    if listing.active == False:
+        return HttpResponseRedirect(reverse("listing", args=(listing_id)))
     highest_bid = util.get_price(listing)
     user = User.objects.get(pk=request.user.id)
     bid_value = bid.cleaned_data["value"]
@@ -171,3 +176,24 @@ def bid(request):
     return HttpResponseRedirect(reverse("listing", args=(listing_id)))
                 
 
+def close_auction(request):
+    listing_id = request.POST["close_listing_id"]
+    listing = Listing.objects.get(pk=listing_id)
+    if request.user.id == listing.owner.id:
+        listing.active = False
+        listing.save()
+
+    return HttpResponseRedirect(reverse("listing", args=(listing_id)))
+
+
+def watchlist(request):
+    if not request.user.is_authenticated:
+        return HttpResponseRedirect(reverse("index"))
+    user = User.objects.get(pk=request.user.id)
+    watchlist = user.watchlist.all()
+    
+
+    return render(request, "auctions/watchlist.html", {
+        "watchlist": watchlist 
+    })
+    

@@ -244,3 +244,5 @@ def display_category(request, category):
         "category": category,
         "price_dict": price_dict
     })
+
+#completed

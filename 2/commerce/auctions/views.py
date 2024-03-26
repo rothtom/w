@@ -5,10 +5,10 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.core.exceptions import ObjectDoesNotExist
 
-from .models import User, Listing, Bid, Item
+from .models import User, Listing, Bid, Item, Comment
 from . import util
 from . import forms
-from .forms import BidForm
+from .forms import BidForm, CommentForm
 
 
 def index(request):
@@ -110,15 +110,20 @@ def listing(request, listing_id):
         return HttpResponseRedirect(reverse("index"))
     price = util.get_price(listing)
     price = f"{price:.2f}"
+    winner = None
+    if listing.active == False:
+        winner = Bid.objects.filter(listing=listing_id).all().order_by("-value").first().bidder
 
-    winner = Bid.objects.filter(listing=listing_id).all().order_by("-value").first().bidder
+    comments = Comment.objects.filter(listing=listing)
 
     return render(request, "auctions/listing.html", {
         "listing": listing,
         "watchlisted": watchlisted,
         "price": price,
         "BidForm": BidForm(),
-        "winner": winner
+        "winner": winner,
+        "comments": comments,
+        "CommentForm": CommentForm(),
     })
 
 def remove_from_watchlist(request):
@@ -196,4 +201,46 @@ def watchlist(request):
     return render(request, "auctions/watchlist.html", {
         "watchlist": watchlist 
     })
+
+
+def comment(request):
+    if not request.user.is_authenticated:
+        return HttpResponseRedirect(reverse("index"))
     
+    if request.method != "POST":
+        return HttpResponseRedirect(reverse("index"))
+    
+    listing_id = request.POST["listing_id"]
+    listing = Listing.objects.get(pk=listing_id)
+    message = request.POST["message"]
+    if message == None:
+        return HttpResponseRedirect(reverse("index"))
+
+    comment = Comment.objects.create(listing=listing, author=request.user, message=message)
+    return HttpResponseRedirect(reverse("listing", args=(listing_id)))
+
+def list_categories(request):
+    listings = Listing.objects.all()
+    categories = []
+    for listing in listings:
+        if listing.item.category not in categories and listing.item.category != "":
+            categories.append(listing.item.category)
+    return render(request, "auctions/list_categories.html", {
+        "categories": categories
+    })
+
+def display_category(request, category):
+    items = Item.objects.filter(category=category)
+    listings = []
+    price_dict = {}
+    for item in items:
+        listing = Listing.objects.get(item=item)
+        if listing:
+            listings.append(listing)
+            price_dict[listing] = f"{util.get_price(listing):.2f}"
+    print(listings)
+    return render(request, "auctions/display_category.html", {
+        "listings": listings,
+        "category": category,
+        "price_dict": price_dict
+    })

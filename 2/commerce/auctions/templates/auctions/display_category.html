@@ -1,0 +1,33 @@
+{% extends "auctions/layout.html" %}
+
+{% block title %}
+    {{ category }}
+{% endblock %}
+
+{% block body %}
+    {% for listing in listings %}
+       
+            <a href="{% url 'listing' listing.id %}">
+                <div style="border: 1px solid black; height: auto; width: 20%; padding: 10px; display: inline-block">
+                    <h6>{{ listing.item.title }}</h6>
+                    {% if listing.item.picture_link %}
+                        <div styel="width: 15%" display="inline-block">
+                            <img src="{{ listing.item.picture_link }}" style="width: 100%; height: 100%;">
+                        </div>
+                        
+                    {% endif %}
+                    <br>
+                    <p>{{ listing.item.description }}</p>
+                    {% for key, value in price_dict.items %}
+                        {% if key == listing %}
+                            <p>Price: {{ value }}$</p>
+                        {% endif %}
+                    {% endfor %}
+                    
+                </div>
+            </a>
+   
+    {% empty %}
+    <p>No active Listings!</p>
+    {% endfor %}
+{% endblock %}

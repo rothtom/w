@@ -41,8 +41,8 @@ function post_new_post() {
 }
 
 
-function body() {
-    const posts = util.get_posts('all', 1);
+function body(category='all', page=1, element_id) {
+    const posts = util.get_posts(category, page);
     let elements = [];
     for (let i = 0; i < posts.length; i++) {
         let element = (
@@ -54,6 +54,6 @@ function body() {
         );
         elements.push(element);
     }
-    ReactDOM(elements, document.querySelector('#all_posts'));
+    ReactDOM(elements, document.querySelector(`#${element_id}`));
     return elements;
 }

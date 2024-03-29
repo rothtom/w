@@ -1,10 +1,15 @@
+import json
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
 
-from .models import User
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
+from django.core.paginator import Paginator, EmptyPage
+
+from .models import User, Post
 
 
 def index(request):
@@ -61,3 +66,79 @@ def register(request):
         return HttpResponseRedirect(reverse("index"))
     else:
         return render(request, "network/register.html")
+
+
+@csrf_exempt
+@login_required
+def create_post(request):
+    if request.method != "POST":
+        # returns error_message if request-method is not POST;
+        return JsonResponse([{
+            "message": "must be accessed via GET request!"
+            }], safe=False)
+    
+    if request.method == "POST":
+        data = json.loads(request.body)
+        message = data.get("message")
+        author = request.user
+        post = Post.objects.create(message=message, author=author)
+        return JsonResponse([{
+            "message": "Post posted!"
+        }], safe=False)
+    
+    if request.method == "PUT":
+        #gets the post
+        post_id = request.POST["post_id"]
+        post = Post.objects.get(pk=post_id)
+
+        #gets the new message
+        message = request.POST["message"]
+        #overwrites the old message
+        post["message"] = message
+        #saves the post
+        post.save()
+        return JsonResponse([{
+            "message": "Post changed succesfully!"
+        }])
+
+
+def get_posts(request, category, page_number):
+    if category == "all":
+        posts = Post.objects.order_by("-timestamp").all()
+
+    elif category == "following":
+        user = User.objects.get(pk=request.user.id)
+        following = user.following
+        posts = []
+
+        for person in following:
+            persons_posts = Post.objects.filter(author=person)
+            posts.append(persons_posts)
+
+    else: 
+        return JsonResponse([{"message": "invalid category"}])
+
+
+
+    post_list = []
+    for post in posts:
+        post = post.serialize()
+        post_list.append(post)
+    p = Paginator(post_list, 10)
+    try:
+        page = p.page(page_number)
+    except EmptyPage:
+        return JsonResponse([{"message": "Invalid page number"}])
+
+
+    page_content = {"body": page.object_list,
+                    "message": "Succesfully selected posts",
+                    "context": {
+                        "has_next": page.has_next(),
+                        "has_previous": page.has_previous(),
+                        "page_number": page_number,
+                        "page_count": p.num_pages,
+                        "category": category
+                    }}
+    return JsonResponse(page_content, safe=False)
+

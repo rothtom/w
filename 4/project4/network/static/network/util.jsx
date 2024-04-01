@@ -1,10 +1,7 @@
-function get_posts(category, page_number) {
-    fetch(`get_posts/${category}/${page_number}`)
-    .then(response => response.json())
-    .then(posts => {
-        console.log(posts);
-        return posts;
-    });
+async function get_posts(category, page_number) {
+    const response = await fetch(`get_posts/${category}/${page_number}`);
+    const posts = await response.json();
+    console.log(posts);
+    return posts;
 }
-
 

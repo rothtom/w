@@ -8,6 +8,7 @@ from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.core.paginator import Paginator, EmptyPage
+from django.core.exceptions import ObjectDoesNotExist
 
 from .models import User, Post
 
@@ -101,13 +102,16 @@ def create_post(request):
             "message": "Post changed succesfully!"
         }])
 
-
+@csrf_exempt
 def get_posts(request, category, page_number):
+    if request.user.is_authenticated:
+        user = User.objects.get(pk=request.user.id)
     if category == "all":
         posts = Post.objects.order_by("-timestamp").all()
 
     elif category == "following":
-        user = User.objects.get(pk=request.user.id)
+        if not request.user.is_authenticated:
+            return JsonResponse({ "message": "must be logged in" })
         following = user.following
         posts = []
 
@@ -122,7 +126,15 @@ def get_posts(request, category, page_number):
 
     post_list = []
     for post in posts:
+        if request.user.is_authenticated:
+            if post in user.liked.all():
+                liked = True
+            else:
+                liked = False
+        else:
+            liked = None
         post = post.serialize()
+        post["liked"] = liked
         post_list.append(post)
     p = Paginator(post_list, 10)
     try:
@@ -142,3 +154,34 @@ def get_posts(request, category, page_number):
                     }}
     return JsonResponse(page_content, safe=False)
 
+
+def display_posts(request, category, page_number):
+    return index(request)
+
+
+@csrf_exempt
+def profile(request, username):
+    try:
+        user = User.objects.get(username=username)
+    except ObjectDoesNotExist:
+        return JsonResponse({"message": "user doesnt exist"})
+    if username == request.user.username:
+        me = True
+    else:
+        me = False
+
+    posts = Post.objects.filter(author=user)
+
+    user_data = {
+        "username": user.username,
+        "following": len(user.following.all()),
+        "followers": len(User.objects.filter(following=user).all()),
+        "self": me,
+        "posts": posts
+    }
+    data = {"body": user_data,
+            "message": "Successfully selected User",
+            "logged_in": request.user.is_authenticated
+            }
+    print(data)
+    return render(request, "network/profile.html", data)

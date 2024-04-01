@@ -1,9 +1,4 @@
-import * as util from './util';
-
-
-
-
-
+import ReactDOM from 'react-dom';
 
 function hide() {
     // hide everything exept index
@@ -42,18 +37,21 @@ function post_new_post() {
 
 
 function body(category='all', page=1, element_id) {
-    const posts = util.get_posts(category, page);
-    let elements = [];
-    for (let i = 0; i < posts.length; i++) {
-        let element = (
-            <div class="post">
-                <h4>{ posts.body.author }</h4>
-                <br></br>
-                <p>{ posts.body.message }</p>
-            </div>
-        );
-        elements.push(element);
-    }
-    ReactDOM(elements, document.querySelector(`#${element_id}`));
-    return elements;
+    const posts = get_posts(category, page).then(posts => {
+        console.log(posts);
+        let elements = [];
+        for (let i = 0; i < posts.body.length; i++) {
+            let element = (
+                <div class="post">
+                    <h4>{ posts.body.author }</h4>
+                    <br></br>
+                    <p>{ posts.body.message }</p>
+                </div>
+            );
+            elements.push(element);
+        }
+        ReactDOM(elements, document.querySelector(`#${element_id}`));
+        return elements;
+    });
+
 }

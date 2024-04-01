@@ -1,0 +1,42 @@
+{% extends "network/layout.html" %}
+^{% load static %}
+{% block title %}
+    Profile:{{ profilename }}
+{% endblock %}
+
+{% block body %}
+    <div class="profile" id="profile-info">
+        <h1>{{ data.body.username }}</h1>
+        <div calss="profile_stats" id="profile_stats">
+            <div>
+                <p>Follower: {{ data.body.followers }}</p>
+                <p>Following: {{ data.body.following }}</p>
+                <button id="follow_button" display="none">follow</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="posts" id="profile_posts">
+        {% for post in data.body.posts %}
+        <div class="post">
+            <h4>{{ post.author }}</h4>
+            <p>{{ post.message }}</p>
+            <br>
+            <p>{{ post.timestamp }}</p>
+        </div>
+        {% endfor %}
+
+    </div>
+
+    <div  class="page_flipper" id="page_flippers">
+        <button class="pageflip_button" data-direction="previous" id="flip_back">Back</button>
+        <select id="page_selector">
+            
+        </select>
+        <button class="pageflip_button" data-direction="next" id="flip_next">Next</button>
+    </div>
+{% endblock %}
+
+{% block script %}
+    <script type="text/babel" src="{% static 'network/profile.jsx' %}"></script>
+{% endblock %}

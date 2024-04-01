@@ -12,6 +12,10 @@
         </div>
     </div>
 
+    <div id="following" class="section">
+
+    </div>
+
     <div id="profile" class="section">
         <hr>
     </div>
@@ -23,7 +27,8 @@
         </select>
         <button class="pageflip_button" data-direction="next" id="flip_next">Next</button>
     </div>
-    
-        
- 
+{% endblock %}
+
+{% block script %}
+    <script type='text/babel' src="{% static 'network/script.jsx' %}"></script>
 {% endblock %}

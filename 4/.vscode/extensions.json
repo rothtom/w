@@ -1,5 +1,8 @@
 {
     "recommendations": [
-        "angelorafael.jsx-html-tags"
+        "angelorafael.jsx-html-tags",
+        "ms-python.vscode-pylance",
+        "ms-python.python",
+        "ms-python.debugpy"
     ]
 }
